@@ -1,0 +1,7 @@
+body { font-family: Arial, sans-serif; margin: 20px; }
+.row { margin-bottom: 10px; }
+label { display:inline-block; width: 110px; }
+button { padding: 6px 12px; margin-right: 6px; }
+table { border-collapse: collapse; margin-top: 15px; width: 100%; max-width: 700px; }
+th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+th { background: #f3f3f3; }

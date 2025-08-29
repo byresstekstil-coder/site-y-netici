@@ -2,22 +2,12 @@
 <html lang="tr">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Aidat & Gider Uygulaması</title>
-  <style>
-    body { font-family: Arial, sans-serif; margin: 20px; }
-    .row { margin-bottom: 10px; }
-    label { display:inline-block; width: 110px; }
-    button { padding: 6px 12px; }
-    table { border-collapse: collapse; margin-top: 15px; width: 100%; max-width: 700px; }
-    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-    th { background: #f3f3f3; }
-  </style>
-  <!-- SheetJS -->
+  <link rel="stylesheet" href="style.css">
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
 <body>
-  <h2>Aidat &amp; Gider Uygulaması (Tek Dosya)</h2>
+  <h2>Aidat & Gider Uygulaması</h2>
 
   <div class="row">
     <label>Tür:</label>
@@ -55,8 +45,8 @@
 
   <div class="row">
     <button id="btnKaydet">Kaydet</button>
-    <button id="btnExcel" style="margin-left:8px">Excel Raporu Al</button>
-    <button id="btnTemizle" style="margin-left:8px">Kayıtları Temizle</button>
+    <button id="btnExcel">Excel Raporu Al</button>
+    <button id="btnTemizle">Kayıtları Temizle</button>
   </div>
 
   <h3>Kayıtlar</h3>
@@ -67,100 +57,6 @@
     <tbody></tbody>
   </table>
 
-<script>
-  // Ay ve daire dropdownları doldur
-  const aylar = ['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'];
-  const aySel = document.getElementById('ay');
-  aylar.forEach(m=>{ const o=document.createElement('option'); o.value=m; o.textContent=m; aySel.appendChild(o); });
-  aySel.value = aylar[new Date().getMonth()];
-
-  const daireSel = document.getElementById('daire');
-  for(let i=1;i<=44;i++){ const o=document.createElement('option'); o.value=i; o.textContent=i; daireSel.appendChild(o); }
-
-  const turSel = document.getElementById('tur');
-  const rowDaire = document.getElementById('rowDaire');
-  const rowKategori = document.getElementById('rowKategori');
-  turSel.addEventListener('change', ()=>{
-    const isAidat = turSel.value === 'Aidat';
-    rowDaire.style.display = isAidat ? '' : 'none';
-    rowKategori.style.display = isAidat ? 'none' : '';
-  });
-
-  // Kayıtlar bellekte tutulacak (localStorage destekli)
-  const TBL = document.querySelector('#tbl tbody');
-  const load = () => JSON.parse(localStorage.getItem('records')||'[]');
-  const save = (arr) => localStorage.setItem('records', JSON.stringify(arr));
-  const render = () => {
-    const arr = load();
-    TBL.innerHTML = '';
-    arr.forEach(r=>{
-      const tr = document.createElement('tr');
-      tr.innerHTML = `<td>${r.tur}</td><td>${r.tur==='Aidat' ? 'Daire ' + r.daire : r.kategori}</td><td>${r.ay}</td><td>${Number(r.tutar).toFixed(2)}</td>`;
-      TBL.appendChild(tr);
-    });
-  };
-  render();
-
-  document.getElementById('btnKaydet').addEventListener('click', ()=>{
-    const tur = turSel.value;
-    const ay = aySel.value;
-    const daire = daireSel.value;
-    const kategori = document.getElementById('kategori').value;
-    const tutar = parseFloat(document.getElementById('tutar').value||'0');
-    const rec = { tur, ay, tutar, daire: tur==='Aidat'? daire : '', kategori: tur==='Gider'? kategori : '' };
-    const arr = load(); arr.push(rec); save(arr); render();
-  });
-
-  document.getElementById('btnTemizle').addEventListener('click', ()=>{
-    if(confirm('Tüm kayıtlar silinsin mi?')){ localStorage.removeItem('records'); render(); }
-  });
-
-  document.getElementById('btnExcel').addEventListener('click', ()=>{
-    const records = load();
-
-    // Sheet 1: Aidat Çizelgesi (Daire x Ay pivot)
-    // Başlık satırı
-    const header = ['Daire', ...aylar];
-    const table = [header];
-    for(let d=1; d<=44; d++){
-      const row = [d];
-      aylar.forEach(ay => {
-        const sum = records
-          .filter(r => r.tur==='Aidat' && String(r.daire)===String(d) && r.ay===ay)
-          .reduce((a,b)=>a+Number(b.tutar||0), 0);
-        row.push(sum);
-      });
-      table.push(row);
-    }
-    // Aylık toplam satırı
-    const totalRow = ['Aylık Toplam'];
-    for(let j=1;j<header.length;j++){
-      let s = 0;
-      for(let i=1;i<table.length;i++){ s += Number(table[i][j]||0); }
-      totalRow.push(s);
-    }
-    table.push(totalRow);
-    const wsAidat = XLSX.utils.aoa_to_sheet(table);
-
-    // Sheet 2: Gelir-Gider Tablosu (düz liste + toplamlar)
-    const gelirGider = [['Tür','Daire/Kategori','Ay','Tutar']];
-    let toplamGelir = 0, toplamGider = 0;
-    records.forEach(r=>{
-      gelirGider.push([r.tur, r.tur==='Aidat' ? ('Daire ' + r.daire) : r.kategori, r.ay, Number(r.tutar||0)]);
-      if(r.tur==='Aidat'){ toplamGelir += Number(r.tutar||0); }
-      if(r.tur==='Gider'){ toplamGider += Number(r.tutar||0); }
-    });
-    gelirGider.push([]);
-    gelirGider.push(['Toplam Gelir','','',toplamGelir]);
-    gelirGider.push(['Toplam Gider','','',toplamGider]);
-    gelirGider.push(['Kasa (Gelir-Gider)','','',toplamGelir-toplamGider]);
-    const wsGG = XLSX.utils.aoa_to_sheet(gelirGider);
-
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, wsAidat, 'Aidat Cizelgesi');
-    XLSX.utils.book_append_sheet(wb, wsGG, 'Gelir Gider');
-    XLSX.writeFile(wb, 'SiteRapor.xlsx');
-  });
-</script>
+  <script src="script.js"></script>
 </body>
 </html>
